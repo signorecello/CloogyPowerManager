@@ -1,0 +1,1 @@
+# CloogyPowerManager
