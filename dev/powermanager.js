@@ -98,7 +98,7 @@ async function sendFeedRequestAndParse(tag1, tag2) {
             // if connection ends (after 10minutes), ask again
             res.on('end', () => {
                 console.log('No more data in response. Restarting...');
-                sendFeedRequestAndParse('Id=150308');
+                sendFeedRequestAndParse('Id=150313');
             });
             res.on('error', (error) => {
                 console.log(`Error: ${error.message}`)
