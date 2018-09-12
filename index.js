@@ -10,6 +10,11 @@ app.get('/', function (req, res) {
     res.end()
 })
 
+setInterval(function() {
+    http.get("http://cloogypm.herokuapp.com/");
+}, 300000); // every 5 minutes (300000)
+
+
 app.listen(port, function() {
     console.log(`Listening on port ${port}`)
 })
