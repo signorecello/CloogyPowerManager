@@ -7,8 +7,8 @@ async function getToken() {
         uri: baseURI + '/sessions',
         method: 'POST',
         body: {
-            "Login": "",
-            "Password": ""
+            "Login": process.env.LOGIN,
+            "Password": process.env.PASSWORD
         },
         json: true
     };
