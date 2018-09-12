@@ -5,10 +5,14 @@ const port = process.env.PORT
 const actuators = require ('./dev/actuators')
 var http = require ('http'); // for the buffer request
 
-app.get('/', function (req, res) {
-    res.json('Power manager running (check console).')
+app.get('/start', function (req, res) {
+    res.json('Power manager starting (check console).')
     powermanager
     res.end()
+})
+
+app.get('/', function (req,res) {
+    res.json('Power manager running (check console).')
 })
 
 setInterval(function() {
