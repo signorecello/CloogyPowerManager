@@ -51,7 +51,7 @@ async function actuate(command) {
     .then(response => {
         if (command === 1) {
             console.log('Device turned on!')
-        } else if (command === 2){
+        } else if (command === 0){
             console.log('Device turned off')
         } else if (command === 3) {
             console.log('Device toogled')
