@@ -3,6 +3,7 @@ const app = express()
 const powermanager = require ('./dev/powermanager.js')
 const port = process.env.PORT
 const actuators = require ('./dev/actuators')
+var http = require ('http'); // for the buffer request
 
 app.get('/', function (req, res) {
     res.json('Power manager running (check console).')
