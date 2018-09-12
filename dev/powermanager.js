@@ -9,7 +9,6 @@ const path = '/api/1.4'
 
 const availablePower = process.env.AVAILABLEPOWER; // magic number: available power in your house
 let readings = []; // an array of numbers to contain all the numbers to be averaged
-let time = Date.now() // for the getconsumptions call
 
 let actuatedFromPowerManager = false; // flag to prevent it turning on the plug, if you're turning it off manually (or on schedule)
 let running = false; // another flag
@@ -18,106 +17,110 @@ let instantPlugPower;
 let lastPlugPower;
 
 // monitors for the active feeds, returns the average of the readings
-async function sendFeedRequestAndParse(tag1, tag2) {
+async function sendFeedRequestAndParseUnit() {
     const token = await auth.getToken() // a token for authentication
-    if (tag1) {
-        let activePowerTag1
-        activePowerTag1 = await grabbers.getTags(tag1) 
-        var agent = new https.Agent({ // keepalive agent because it's a buffer
-            keepAlive: true
+    let activePowerTag
+    activePowerTag = await grabbers.getTags('Id=150308') 
+    var agent = new https.Agent({ // keepalive agent because it's a buffer
+        keepAlive: true
+    })
+    var headers = {
+        'Authorization': 'VPS ' + token,
+        'Accept': 'application/json',
+        'Agent': agent,
+        'Cache-Control': 'no-cache'
+    };
+    var options = {
+        host: hostname,
+        path: `${path}/activefeeds?tags=%5B${activePowerTag[0]['Id']}%5D`,
+        headers: headers
+    }
+    // now for the fun part: receives the data as string, slices it and parses to a fload, 
+    // if the reading is good, adds it to the array
+    const req = https.request(options, (res) => {
+        console.log(`Starting connection for UNIT`)
+        console.log(`STATUS: ${res.statusCode}`);
+        console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+            //console.log(chunk)
+            read = parseFloat(chunk.slice(45, -2)); // magic numbers: slicing the first 45 chars
+            // beware because it slices the first 45 chars, so if you intend to draw more than 9,99kw, you need to slice only 44
+            if (!isNaN(read)) {
+            readings.push(read);
+            }
+        });
+        // if connection ends (after 10minutes), ask again
+        res.on('end', () => {
+            console.log('No more data in response. Restarting...');
+            sendFeedRequestAndParseUnit();
+        });
+        res.on('error', (error) => {
+            console.log(`Error: ${error.message}`)
         })
-        var headers = {
-            'Authorization': 'VPS ' + token,
-            'Accept': 'application/json',
-            'Agent': agent,
-            'Cache-Control': 'no-cache'
-        };
-        var options = {
-            host: hostname,
-            path: `${path}/activefeeds?tags=%5B${activePowerTag1[0]['Id']}%5D`,
-            headers: headers
-        }
-        // now for the fun part: receives the data as string, slices it and parses to a fload, 
-        // if the reading is good, adds it to the array
-        const req = https.request(options, (res) => {
-            console.log(`STATUS: ${res.statusCode}`);
-            console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
-            res.setEncoding('utf8');
-            res.on('data', (chunk) => {
-                //console.log(chunk)
-                read = parseFloat(chunk.slice(45, -2)); // magic numbers: slicing the first 45 chars
-                // beware because it slices the first 45 chars, so if you intend to draw more than 9,99kw, you need to slice only 44
-                if (!isNaN(read)) {
-                readings.push(read);
-                }
-            });
-            // if connection ends (after 10minutes), ask again
-            res.on('end', () => {
-                console.log('No more data in response. Restarting...');
-                sendFeedRequestAndParse('Id=150308');
-            });
-            res.on('error', (error) => {
-                console.log(`Error: ${error.message}`)
-            })
-            });
-        
-            req.on('error', (e) => {
-                console.error(`problem with request: ${e.message}`);
-            });
-            
-            req.end()
-        }
-    if (tag2) {
-        let activePowerTag2
-        activePowerTag2 = await grabbers.getTags(tag2) 
-        var agent = new https.Agent({ // keepalive agent because it's a buffer
-            keepAlive: true
-        })
-        var headers = {
-            'Authorization': 'VPS ' + token,
-            'Accept': 'application/json',
-            'Agent': agent,
-            'Cache-Control': 'no-cache'
-        };
-        var options = {
-            host: hostname,
-            path: `${path}/activefeeds?tags=%5B${activePowerTag2[0]['Id']}%5D`,
-            headers: headers
-        }
-        // now for the fun part: receives the data as string, slices it and parses to a fload, 
-        // if the reading is good, adds it to the array
-        const req = https.request(options, (res) => {
-            console.log(`STATUS: ${res.statusCode}`);
-            console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
-            res.setEncoding('utf8');
-            res.on('data', (chunk) => {
-                read = parseFloat(chunk.slice(45, -2)); // magic numbers: slicing the first 45 chars
-                // beware because it slices the first 45 chars, so if you intend to draw more than 9,99kw, you need to slice only 44
-                instantPlugPower = read;
-            });
-            // if connection ends (after 10minutes), ask again
-            res.on('end', () => {
-                console.log('No more data in response. Restarting...');
-                sendFeedRequestAndParse('Id=150313');
-            });
-            res.on('error', (error) => {
-                console.log(`Error: ${error.message}`)
-            })
-            });
-        
-            req.on('error', (e) => {
-                console.error(`problem with request: ${e.message}`);
-            });
-            
-            req.end()
-        }
+    });
+    
+    req.on('error', (e) => {
+        console.error(`problem with request: ${e.message}`);
+    });
+    
+    req.end()
 }
+
+
+async function sendFeedRequestAndParsePlug() {
+    const token = await auth.getToken() // a token for authentication
+    let activePowerTag
+    activePowerTag = await grabbers.getTags('Id=150313') 
+    var agent = new https.Agent({ // keepalive agent because it's a buffer
+        keepAlive: true
+    })
+    var headers = {
+        'Authorization': 'VPS ' + token,
+        'Accept': 'application/json',
+        'Agent': agent,
+        'Cache-Control': 'no-cache'
+    };
+    var options = {
+        host: hostname,
+        path: `${path}/activefeeds?tags=%5B${activePowerTag[0]['Id']}%5D`,
+        headers: headers
+    }
+    // now for the fun part: receives the data as string, slices it and parses to a fload, 
+    // if the reading is good, adds it to the array
+    const req = https.request(options, (res) => {
+        console.log(`Starting connection for PLUG`)
+        console.log(`STATUS: ${res.statusCode}`);
+        console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+            read = parseFloat(chunk.slice(45, -2)); // magic numbers: slicing the first 45 chars
+            // beware because it slices the first 45 chars, so if you intend to draw more than 9,99kw, you need to slice only 44
+            instantPlugPower = read;
+        });
+        // if connection ends (after 10minutes), ask again
+        res.on('end', () => {
+            console.log('No more data in response. Restarting...');
+            sendFeedRequestAndParsePlug();
+        });
+        res.on('error', (error) => {
+            console.log(`Error: ${error.message}`)
+        })
+    });
+    
+    req.on('error', (e) => {
+        console.error(`problem with request: ${e.message}`);
+    });
+    
+    req.end()
+}
+
 
 // keeps track of the average and actuates plug if over availablePower
 async function getAverageAndActuate() {
     if (running === true) {
-        sendFeedRequestAndParse('Id=150308')
-        sendFeedRequestAndParse(undefined, 'Id=150313')
+        sendFeedRequestAndParseUnit()
+        sendFeedRequestAndParsePlug()
         let average;
         let timePassed = 0;
         let timeout = process.env.READINGSFREQUENCY; // twelve seconds
@@ -125,7 +128,8 @@ async function getAverageAndActuate() {
         // then it gets the instant consumption from the plug
         setInterval(async function() {
             average = readings.reduce((a,b) => a + b, 0) / readings.length;
-            if (isNaN(average)) sendFeedRequestAndParse('Id=150308') // some error handling
+            if (isNaN(average)) sendFeedRequestAndParseUnit() // some error handling
+            if (isNaN(instantPlugPower)) sendFeedRequestAndParsePlug()
             console.log(`Number of readings: ${readings.length}`)
             readings = []
             console.log(`Average: ${average}`);
@@ -181,10 +185,6 @@ async function powerManager (data) {
     waitForChanges()
 }
 }
-
-/*async function test() {
-await sendFeedRequestAndParse('Id=150308')
-}*/
 
 //test()
 powerManager('firstBoot')
