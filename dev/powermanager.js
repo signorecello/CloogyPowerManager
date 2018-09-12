@@ -53,7 +53,7 @@ async function sendFeedRequestAndParseUnit() {
         // if connection ends (after 10minutes), ask again
         res.on('end', () => {
             console.log('No more data in response. Restarting...');
-            sendFeedRequestAndParseUnit();
+            // sendFeedRequestAndParseUnit();
         });
         res.on('error', (error) => {
             console.log(`Error: ${error.message}`)
@@ -101,7 +101,7 @@ async function sendFeedRequestAndParsePlug() {
         // if connection ends (after 10minutes), ask again
         res.on('end', () => {
             console.log('No more data in response. Restarting...');
-            sendFeedRequestAndParsePlug();
+            // sendFeedRequestAndParsePlug();
         });
         res.on('error', (error) => {
             console.log(`Error: ${error.message}`)
@@ -128,8 +128,8 @@ async function getAverageAndActuate() {
         // then it gets the instant consumption from the plug
         setInterval(async function() {
             average = readings.reduce((a,b) => a + b, 0) / readings.length;
-            if (isNaN(average)) sendFeedRequestAndParseUnit() // some error handling
-            if (isNaN(instantPlugPower)) sendFeedRequestAndParsePlug()
+            // if (isNaN(average)) sendFeedRequestAndParseUnit() // some error handling
+            // if (isNaN(instantPlugPower)) sendFeedRequestAndParsePlug()
             console.log(`Number of readings: ${readings.length}`)
             readings = []
             console.log(`Average: ${average}`);
