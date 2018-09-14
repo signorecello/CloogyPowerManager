@@ -1,5 +1,6 @@
 const request = require ('request-promise');
 const auth = require ('./authentication.js');
+const chalk = require ('chalk')
 
 const protocol = 'https://'
 const hostname = 'api.cloogy.com'
@@ -21,6 +22,10 @@ async function getUnits() {
     let response = await request(requestOptions)
     .then (response => {
         console.log(response)
+    })
+    .catch (error => {
+        console.log(chalk.redBright.bold.underline(`Error (request token): ${error}`))
+        process.exit()
     })
 }
 
@@ -45,9 +50,9 @@ async function getDevices(name) {
         //console.log(device['Id'])
         return (device['Id'])
         })
-    .catch (err => {
-        console.log(err)
-        return response.List
+    .catch (error => {
+        console.log(chalk.redBright.bold.underline(`Error (request devices): ${error}`))
+        process.exit()
     })
     return device['Id']
 }
@@ -78,8 +83,9 @@ async function getTags(where, order) {
     .then(response => {
         return (response.List)
         })
-    .catch (err => {
-        console.log(err)
+    .catch (error => {
+        console.log(chalk.redBright.bold.underline(`Error (request tags): ${error}`))
+        process.exit()
     })
     return response
 }
@@ -103,8 +109,9 @@ async function getConsumption(granularity, to, from, tag) {
         //console.log(response)
         return response
     })
-    .catch (err => {
-        console.log(err)
+    .catch (error => {
+        console.log(chalk.redBright.bold.underline(`Error (request consumptions): ${error}`))
+        process.exit()
     })
     return response
 }

@@ -2,6 +2,7 @@ var https = require ('https'); // for the buffer request
 const auth = require ('./authentication.js'); // grabs tokens and other stuff
 const actuators = require ('./actuators.js') // to find actuators and actuate them
 const grabbers = require ('./grabbers.js') // grabs tags, devices, actuatorsIDs, etc
+const chalk = require ('chalk')
 
 const protocol = 'https://'
 const hostname = 'api.cloogy.com'
@@ -40,9 +41,9 @@ async function sendFeedRequestAndParseUnit() {
     // now for the fun part: receives the data as string, slices it and parses to a fload, 
     // if the reading is good, adds it to the array
     const req = https.request(options, (res) => {
-        console.log(`Starting connection for UNIT`)
+        console.log(chalk.blue('Starting connection for UNIT'))
         console.log(`STATUS: ${res.statusCode}`);
-        console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+        console.log(`HEADERS: ${JSON.stringify(res.headers)}.`);
         res.setEncoding('utf8');
         res.on('data', (chunk) => {
             //console.log(chunk)
@@ -54,19 +55,19 @@ async function sendFeedRequestAndParseUnit() {
         });
         // if connection ends (after 10minutes), ask again
         res.on('end', () => {
-            console.log('No more data in response (unit). Restarting...');
+            console.log(chalk.blueBright(`No more data in response (unit). Restarting...`));
             sendFeedRequestAndParseUnit();
             res.destroy();
         });
         res.on('error', (error) => {
-            console.log(`Error (unit): ${error.message}`)
+            console.log(chalk.redBright.bold.underline(`Error (unit): ${error.message}`))
             sendFeedRequestAndParsePlug();
             res.destroy();
         })
     });
     
     req.on('error', (e) => {
-        console.error(`problem with request (unit): ${e.message}`);
+        console.error(chalk.redBright.bold.underline(`problem with request (unit): ${e.message}`));
     });
     
     req.end()
@@ -93,9 +94,10 @@ async function sendFeedRequestAndParsePlug() {
     // now for the fun part: receives the data as string, slices it and parses to a fload, 
     // if the reading is good, adds it to the array
     const req = https.request(options, (res) => {
-        console.log(`Starting connection for PLUG`)
+        console.log(chalk.blue(`Starting connection for PLUG`))
         console.log(`STATUS: ${res.statusCode}`);
-        console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+        console.log(`HEADERS: ${JSON.stringify(res.headers)}
+        `);
         res.setEncoding('utf8');
         res.on('data', (chunk) => {
             read = parseFloat(chunk.slice(45, -2)); // magic numbers: slicing the first 45 chars
@@ -104,19 +106,19 @@ async function sendFeedRequestAndParsePlug() {
         });
         // if connection ends (after 10minutes), ask again
         res.on('end', () => {
-            console.log('No more data in response (unit). Restarting...');
+            console.log(chalk.blueBright(`No more data in response (unit). Restarting...`));
             sendFeedRequestAndParsePlug();
             res.destroy();
         });
         res.on('error', (error) => {
-            console.log(`Error (unit): ${error.message}`)
+            console.log(chalk.redBright.bold.underline(`Error (unit): ${error.message}`))
             sendFeedRequestAndParsePlug();
             res.destroy();
         })
     });
     
     req.on('error', (e) => {
-        console.error(`problem with request (unit): ${e.message}`);
+        console.error(chalk.redBright.bold.underline(`problem with request (unit): ${e.message}`));
     });
     
     req.end()
@@ -136,21 +138,21 @@ async function getAverageAndActuate() {
     // then it gets the instant consumption from the plug
     setInterval(async function() {
         average = readings.reduce((a,b) => a + b, 0) / readings.length;
-        console.log(`Number of readings: ${readings.length}`)
-        readings = []
+        console.log(chalk.greenBright(`Number of readings: ${readings.length}`))
         console.log(`Average: ${average}`);
         console.log(`Instant plug power: ${instantPlugPower}`)
+        readings = []
         ++timePassed
         minutes = timePassed * (timeout/1000)/60
-        console.log(`Elapsed time: ${minutes} minutes`)
+        console.log(`Elapsed time: ${minutes} minutes\n`)
         // if actuator's state is ON and average power is bigger than you can manage, it turns off the plug
         // the actuatedFromPowerManager flag lets the program know you didn't do it manually so it keeps going
         let actuatorState = await actuators.getActuatorState()
         if (actuatorState === 'On') {
             if (average > availablePower) {
                 lastPlugPower = instantPlugPower;
-                console.log('Device turned off due to Power Manager')
-                console.log(`Last plug power: ${lastPlugPower}`)
+                console.log(chalk.red(`Device turned off due to Power Manager`))
+                console.log(chalk.red(`Last plug power: ${lastPlugPower}`))
                 actuators.actuate(0)
                 actuatedFromPowerManager = true;
             }
@@ -158,7 +160,8 @@ async function getAverageAndActuate() {
         // turns the plug back on if your average consumption + the instant power you were drawing from the plug
         // is less than the available power
             if (average + lastPlugPower < availablePower && actuatedFromPowerManager === true) {
-                console.log('Available power can handle the plug power. Turning actuator ON.')
+                console.log(chalk.red(`Available power can handle the plug power. Turning actuator ON.`))
+                console.log(chalk.red(`Expected plug power: ${lastPlugPower}`))
                 actuatedFromPowerManager = false;
                 actuators.actuate(1)
             }
@@ -200,4 +203,4 @@ async function powerManager (data) {
 module.exports = { powerManager }
 
 //test()
-//powerManager('firstBoot')
+powerManager('firstBoot')

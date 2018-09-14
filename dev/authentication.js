@@ -1,5 +1,6 @@
 const baseURI = 'https://api.cloogy.com/api/1.4';
 const request = require ('request-promise');
+const chalk = require ('chalk')
 
 // async function to get our tokens
 async function getToken() {
@@ -18,7 +19,8 @@ async function getToken() {
         return response.Token
     }
     catch (error) {
-        console.log(error)
+        console.log(chalk.redBright.bold.underline(`Error (request token): ${error}`))
+        process.exit()
     }
 }
 

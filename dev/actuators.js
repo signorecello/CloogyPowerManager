@@ -1,6 +1,7 @@
 const request = require ('request-promise');
 const auth = require ('./authentication.js');
 const grabbers = require ('./grabbers.js')
+const chalk = require ('chalk')
 
 const protocol = 'https://'
 const hostname = 'api.cloogy.com'
@@ -25,7 +26,8 @@ async function getActuatorState() {
         return response['State']
     }
     catch (error) {
-        console.log(error)
+        console.log(chalk.redBright.bold.underline(`Error (request actuatorstate): ${error}`))
+        process.exit()
     }
 }
 
@@ -59,8 +61,9 @@ async function actuate(command) {
             console.log('Unknown actuator command')
         }
     })
-    .catch(err => {
-        console.log(err)
+    .catch(error => {
+        console.log(chalk.redBright.bold.underline(`Error (request actuate): ${error}`))
+        process.exit()
     })
 }
 
