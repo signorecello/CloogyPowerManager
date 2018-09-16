@@ -138,7 +138,7 @@ async function getAverageAndActuate() {
     // then it gets the instant consumption from the plug
     setInterval(async function() {
         average = readings.reduce((a,b) => a + b, 0) / readings.length;
-        console.log(chalk.greenBright(`Number of readings: ${readings.length}`))
+        console.log(chalk.green(`Number of readings: ${readings.length}`))
         console.log(`Average: ${average}`);
         console.log(`Instant plug power: ${instantPlugPower}`)
         readings = []

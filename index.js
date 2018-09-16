@@ -11,14 +11,9 @@ app.get('/', function (req, res) {
     res.end()
 })
 
-/*app.get('/ping', function (req,res) {
-    res.json('Welcome to Cloogy Power Manager.')
-    res.end()
-})*/
-
 setInterval(function() {
     http.get("http://cloogypm.herokuapp.com/");
-}, 10000); // every 5 minutes (300000)
+}, 300000); // every 5 minutes (300000)
 
 
 app.listen(port, function() {
