@@ -64,7 +64,7 @@ async function sendFeedRequestAndParseUnit() {
         });
         res.on('error', (error) => {
             console.log(chalk.redBright.bold.underline(`Error (unit): ${error.message}`))
-            sendFeedRequestAndParsePlug();
+            sendFeedRequestAndParseUnit();
             res.destroy();
         })
     });
@@ -204,7 +204,6 @@ async function powerManager (data) {
         }
     waitForChanges()
     }
-    console.log('waitForChanges')
 }
 
 
