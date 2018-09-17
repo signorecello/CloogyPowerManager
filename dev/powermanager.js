@@ -3,6 +3,7 @@ const auth = require ('./authentication.js'); // grabs tokens and other stuff
 const actuators = require ('./actuators.js') // to find actuators and actuate them
 const grabbers = require ('./grabbers.js') // grabs tags, devices, actuatorsIDs, etc
 const chalk = require ('chalk')
+const EventEmitter = require ('events')
 
 const protocol = 'https://'
 const hostname = 'api.cloogy.com'
@@ -12,6 +13,8 @@ const availablePower = process.env.AVAILABLEPOWER; // magic number: available po
 let readings = []; // an array of numbers to contain all the numbers to be averaged
 
 let actuatedFromPowerManager = false; // flag to prevent it turning on the plug, if you're turning it off manually (or on schedule)
+let protection = false; // flag, prevents quick succession trigger on/off. can be turned off by setting env variable to 0
+
 
 let instantPlugPower;
 let lastPlugPower;
@@ -24,7 +27,7 @@ async function sendFeedRequestAndParseUnit() {
     const token = await auth.getToken() // a token for authentication
     let activePowerTag
     activePowerTag = await grabbers.getTags('Id=150308') 
-    var agent = new https.Agent({ // keepalive agent because it's a buffer
+    var agent = new https.Agent({ 
         keepAlive: true
     })
     var headers = {
@@ -125,9 +128,17 @@ async function sendFeedRequestAndParsePlug() {
 }
 
 
+class DeviceProtection extends EventEmitter {
+    execute () {
+        setTimeout(() => {
+            protection = false;
+        }, process.env.DEVICE_PROTECTION_TIMEOUT)
+    }
+}
+
+const deviceProtection = new DeviceProtection
 
 // keeps track of the average and actuates plug if over availablePower
-
 async function getAverageAndActuate() {
     sendFeedRequestAndParseUnit()
     sendFeedRequestAndParsePlug()
@@ -145,30 +156,27 @@ async function getAverageAndActuate() {
         ++timePassed
         minutes = timePassed * (timeout/1000)/60
         console.log(`Elapsed time: ${minutes} minutes\n`)
-        // if actuator's state is ON and average power is bigger than you can manage, it turns off the plug
-        // the actuatedFromPowerManager flag lets the program know you didn't do it manually so it keeps going
+        protection ? console.log(`Protection ON for ${(process.env.DEVICE_PROTECTION_TIMEOUT / 1000)} seconds`) : console.log(`Protection is OFF`);
         let actuatorState = await actuators.getActuatorState()
-        if (actuatorState === 'On') {
-            if (average > availablePower) {
+        if (actuatorState === 'On' && average > availablePower) {
                 lastPlugPower = instantPlugPower;
                 console.log(chalk.red(`Device turned off due to Power Manager`))
-                console.log(chalk.red(`Last plug power: ${lastPlugPower}`))
+                console.log(chalk.red(`Last plug power: ${lastPlugPower}`))     
                 actuators.actuate(0)
                 actuatedFromPowerManager = true;
-            }
-        } else {
-        // turns the plug back on if your average consumption + the instant power you were drawing from the plug
-        // is less than the available power
-            if (average + lastPlugPower < availablePower && actuatedFromPowerManager === true) {
+                protection = true;
+                deviceProtection.execute(); 
+            
+        } else if (average + lastPlugPower < availablePower && actuatedFromPowerManager === true && protection === false) {
                 console.log(chalk.red(`Available power can handle the plug power. Turning actuator ON.`))
                 console.log(chalk.red(`Expected plug power: ${lastPlugPower}`))
                 actuatedFromPowerManager = false;
                 actuators.actuate(1)
-            }
-        }
-    
+        } 
     }, timeout)
 }
+
+
 
 
 
@@ -196,6 +204,7 @@ async function powerManager (data) {
         }
     waitForChanges()
     }
+    console.log('waitForChanges')
 }
 
 
