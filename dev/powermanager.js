@@ -160,7 +160,8 @@ async function getAverageAndActuate() {
         console.log(`Elapsed time: ${minutes} minutes\n`)
         protection ? console.log(`Protection ON for ${(process.env.DEVICE_PROTECTION_TIMEOUT / 1000)} seconds`) : console.log(`Protection is OFF`);
         let actuatorState = await actuators.getActuatorState()
-        if (actuatorState === 'On' && average > availablePower) {
+        if (actuatorState === 'On') {
+            if (average > availablePower) {
                 lastPlugPower = instantPlugPower;
                 console.log(chalk.red(`Device turned off due to Power Manager`))
                 console.log(chalk.red(`Last plug power: ${lastPlugPower}`))     
@@ -168,12 +169,14 @@ async function getAverageAndActuate() {
                 actuatedFromPowerManager = true;
                 protection = true;
                 deviceProtection.execute(); 
-            
-        } else if (average + lastPlugPower < availablePower && actuatedFromPowerManager === true && protection === false) {
+            }
+        } else {
+            if (average + lastPlugPower < availablePower && actuatedFromPowerManager === true && protection === false) {
                 console.log(chalk.red(`Available power can handle the plug power. Turning actuator ON.`))
                 console.log(chalk.red(`Expected plug power: ${lastPlugPower}`))
                 actuatedFromPowerManager = false;
                 actuators.actuate(1)
+            }
         } 
     }, timeout)
 }
