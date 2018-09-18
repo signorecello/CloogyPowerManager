@@ -140,7 +140,6 @@ class DeviceProtection extends EventEmitter {
 
 const deviceProtection = new DeviceProtection
 
-// keeps track of the average and actuates plug if over availablePower
 async function getAverageAndActuate() {
     sendFeedRequestAndParseUnit()
     sendFeedRequestAndParsePlug()
@@ -158,26 +157,29 @@ async function getAverageAndActuate() {
         ++timePassed
         minutes = timePassed * (timeout/1000)/60
         console.log(`Elapsed time: ${minutes} minutes\n`)
-        protection ? console.log(`Protection ON for ${(process.env.DEVICE_PROTECTION_TIMEOUT / 1000)} seconds`) : console.log(`Protection is OFF`);
+        // if actuator's state is ON and average power is bigger than you can manage, it turns off the plug
+        // the actuatedFromPowerManager flag lets the program know you didn't do it manually so it keeps going
         let actuatorState = await actuators.getActuatorState()
         if (actuatorState === 'On') {
             if (average > availablePower) {
                 lastPlugPower = instantPlugPower;
                 console.log(chalk.red(`Device turned off due to Power Manager`))
-                console.log(chalk.red(`Last plug power: ${lastPlugPower}`))     
+                console.log(chalk.red(`Last plug power: ${lastPlugPower}`))
                 actuators.actuate(0)
                 actuatedFromPowerManager = true;
-                protection = true;
-                deviceProtection.execute(); 
+                deviceProtection.execute()
             }
         } else {
-            if (average + lastPlugPower < availablePower && actuatedFromPowerManager === true && protection === false) {
+        // turns the plug back on if your average consumption + the instant power you were drawing from the plug
+        // is less than the available power
+            if (average + lastPlugPower < availablePower && actuatedFromPowerManager === true) {
                 console.log(chalk.red(`Available power can handle the plug power. Turning actuator ON.`))
                 console.log(chalk.red(`Expected plug power: ${lastPlugPower}`))
                 actuatedFromPowerManager = false;
                 actuators.actuate(1)
             }
-        } 
+        }
+    
     }, timeout)
 }
 
