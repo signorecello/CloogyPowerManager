@@ -71,6 +71,7 @@ async function sendFeedRequestAndParseUnit() {
     
     req.on('error', (e) => {
         console.error(chalk.redBright.bold.underline(`problem with request (unit): ${e.message}`));
+        process.exit()
     });
     
     req.end()
@@ -122,6 +123,7 @@ async function sendFeedRequestAndParsePlug() {
     
     req.on('error', (e) => {
         console.error(chalk.redBright.bold.underline(`problem with request (unit): ${e.message}`));
+        process.exit()
     });
     
     req.end()
