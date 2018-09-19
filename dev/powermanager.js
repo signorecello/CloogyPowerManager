@@ -141,8 +141,8 @@ class DeviceProtection extends EventEmitter {
 const deviceProtection = new DeviceProtection
 
 async function getAverageAndActuate() {
-    sendFeedRequestAndParseUnit()
-    sendFeedRequestAndParsePlug()
+    await sendFeedRequestAndParseUnit()
+    await sendFeedRequestAndParsePlug()
     let average;
     let timePassed = 0;
     let timeout = process.env.READINGSFREQUENCY; // twelve seconds
@@ -150,7 +150,6 @@ async function getAverageAndActuate() {
     // then it gets the instant consumption from the plug
     setInterval(async function() {
         average = readings.reduce((a,b) => a + b, 0) / readings.length;
-        if (isNaN(average)) process.exit()
         let actuatorState = await actuators.getActuatorState()
         console.log(chalk.green(`Number of readings: ${readings.length}`))
         console.log(`Average: ${average}`);
