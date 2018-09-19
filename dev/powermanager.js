@@ -150,6 +150,8 @@ async function getAverageAndActuate() {
     // then it gets the instant consumption from the plug
     setInterval(async function() {
         average = readings.reduce((a,b) => a + b, 0) / readings.length;
+        if (isNaN(average)) process.exit()
+        let actuatorState = await actuators.getActuatorState()
         console.log(chalk.green(`Number of readings: ${readings.length}`))
         console.log(`Average: ${average}`);
         console.log(`Instant plug power: ${instantPlugPower}`)
@@ -159,7 +161,8 @@ async function getAverageAndActuate() {
         console.log(`Elapsed time: ${minutes} minutes\n`)
         // if actuator's state is ON and average power is bigger than you can manage, it turns off the plug
         // the actuatedFromPowerManager flag lets the program know you didn't do it manually so it keeps going
-        let actuatorState = await actuators.getActuatorState()
+        console.log(`Plug is ${actuatorState}`)
+        console.log(`Protection: ${protection}`)
         if (actuatorState === 'On') {
             if (average > availablePower) {
                 lastPlugPower = instantPlugPower;
@@ -167,6 +170,7 @@ async function getAverageAndActuate() {
                 console.log(chalk.red(`Last plug power: ${lastPlugPower}`))
                 actuators.actuate(0)
                 actuatedFromPowerManager = true;
+                protection = true;
                 deviceProtection.execute()
             }
         } else {
