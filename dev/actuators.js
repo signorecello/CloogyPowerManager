@@ -1,17 +1,18 @@
 const request = require ('request-promise');
-const auth = require ('./authentication.js');
 const grabbers = require ('./grabbers.js')
-const chalk = require ('chalk')
+const chalk = require ('chalk');
+const powermanager = require ('./powermanager');
 
 const protocol = 'https://'
 const hostname = 'api.cloogy.com'
 const path = '/api/1.4'
 const baseURI = `${protocol}${hostname}${path}`;
 
+
+
 // awaits for the ID of the actuator and for the tokens, and asks for it's state
-async function getActuatorState() {
-    const token = await auth.getToken()
-    const actuatorID = await grabbers.getTags('Id=150315');
+async function getActuatorState(token) {
+    const actuatorID = await grabbers.getTags(token, 'Id=150315');
     const requestOptions = {
         uri: baseURI + '/actuatorstate/' + actuatorID[0].Id,
         method: 'GET',
@@ -32,10 +33,9 @@ async function getActuatorState() {
 }
 
 // if state is ON turn OFF, etc
-async function actuate(command) {
-    const token = await auth.getToken();
-    const actuator = await grabbers.getTags('Id=150315');
-    const actuatorState = await getActuatorState();
+async function actuate(token, command) {
+    const actuator = await grabbers.getTags(token, 'Id=150315');
+    const actuatorState = await getActuatorState(token);
     const requestOptions = {
         uri: baseURI + "/actuations",
         method: 'POST',
