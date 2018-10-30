@@ -230,6 +230,7 @@ async function powerManager(data) {
         async function waitForChanges() {
             if (data === "firstBoot") {
                 actuatorState1 = "firstBoot";
+                protection = true;
                 deviceProtection.execute();
             } else actuatorState1 = await actuators.getActuatorState(token);
 
