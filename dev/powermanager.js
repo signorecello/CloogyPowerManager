@@ -15,7 +15,7 @@ const availablePower = process.env.AVAILABLEPOWER; // magic number: available po
 let actuatedFromPowerManager = false; // flag to prevent it turning on the plug, if you're turning it off manually (or on schedule)
 let protection = false; // flag, prevents quick succession trigger on/off. can be turned off by setting env variable to 0
 
-let lastPlugPower;
+let lastPlugPower = 0;
 
 let token;
 let refreshToken;
@@ -270,7 +270,7 @@ async function powerManager(data) {
     async function waitForChanges() {
       if (data === "firstBoot") {
         actuatorState1 = "firstBoot";
-        protection = true;
+        actuatedFromPowerManager = true;
         deviceProtection.execute();
       } else actuatorState1 = await actuators.getActuatorState(token);
 
