@@ -5,6 +5,13 @@ const chalk = require("chalk");
 const EventEmitter = require("events");
 const request = require("request-promise");
 
+const { Client } = require("pg");
+
+const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: true
+});
+
 const protocol = "https://";
 const hostname = "api.cloogy.com";
 const path = "/api/1.4";
@@ -154,11 +161,30 @@ class DeviceProtection extends EventEmitter {
     startTimeout() {
         this.timeout = setTimeout(() => {
             protection = false;
+            client.query(
+                `UPDATE status SET status='${protection}'`,
+                (err, res) => {
+                    if (err) throw err;
+                    for (let row of res.rows) {
+                        console.log(row);
+                        protection = row.status;
+                        console.log(protection);
+                    }
+                }
+            );
         }, process.env.DEVICE_PROTECTION_TIMEOUT);
     }
 
     execute() {
         protection = true;
+        client.query(`UPDATE status SET status='${protection}'`, (err, res) => {
+            if (err) throw err;
+            for (let row of res.rows) {
+                console.log(row);
+                protection = row.status;
+                console.log(protection);
+            }
+        });
         this.startTimeout();
     }
 
@@ -174,6 +200,16 @@ async function getAverageAndActuate() {
     const auth = new Authentication();
     await auth.getToken();
     auth.keepTrack();
+
+    await client.query(`SELECT * FROM status`, async (err, res) => {
+        if (err) throw err;
+        for (let row of res.rows) {
+            console.log(row);
+            if (row.status === true) {
+                await actuators.actuate(token, 1);
+            }
+        }
+    });
     // initiating the classes (and send the requests)
     let unitTag = await grabbers.getTags(token, "Id=150308");
     let plugTag = await grabbers.getTags(token, "Id=150313");
@@ -272,13 +308,13 @@ let actuatorState1 = "On";
 let actuatorState2 = "Off";
 
 async function powerManager(data) {
+    client.connect();
     // if you activate the plug manually, the actuatedFromPowerManager flag is still false,
     // so it keeps waiting for changes
     if (actuatedFromPowerManager === false) {
         async function waitForChanges() {
             if (data === "firstBoot") {
                 actuatorState1 = "firstBoot";
-                deviceProtection.execute();
             } else actuatorState1 = await actuators.getActuatorState(token);
 
             actuatorState2 = "Off";
@@ -294,6 +330,6 @@ async function powerManager(data) {
     }
 }
 
-module.exports = { grabToken, powerManager };
+module.exports = { grabToken, powerManager, client };
 
 powerManager("firstBoot");
